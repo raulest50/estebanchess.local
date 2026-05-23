@@ -1,0 +1,11 @@
+.venv/
+.uv-cache/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+data/
+engines/*.exe
+engines/*.zip
+*.pyc
+/engines
+*.log

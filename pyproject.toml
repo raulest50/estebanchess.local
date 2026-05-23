@@ -1,0 +1,25 @@
+[project]
+name = "chess-move-analyzer"
+version = "0.1.0"
+description = "Local Chess.com game analyzer powered by Stockfish."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28.0",
+    "nicegui>=2.11.0",
+    "pydantic>=2.10.0",
+    "python-chess>=1.999",
+    "pytest>=8.3.0",
+]
+
+[project.scripts]
+chess-move-analyzer = "chess_move_analyzer.app:main"
+
+[build-system]
+requires = ["hatchling>=1.26.0"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
