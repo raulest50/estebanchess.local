@@ -10,6 +10,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         build-essential \
+        curl \
         git \
         make \
     && rm -rf /var/lib/apt/lists/*
@@ -54,24 +55,15 @@ ENV CHESS_ANALYZER_HOST=0.0.0.0
 ENV CHESS_ANALYZER_PORT=8080
 ENV CHESS_ANALYZER_SHOW=false
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
-        avahi-daemon \
-        ca-certificates \
-        dbus \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 COPY --from=python-builder /opt/venv /opt/venv
 COPY --from=stockfish-builder /out/stockfish /usr/local/bin/stockfish
-COPY docker/entrypoint.sh /usr/local/bin/chess-entrypoint
 
-RUN chmod +x /usr/local/bin/chess-entrypoint /usr/local/bin/stockfish \
+RUN chmod +x /usr/local/bin/stockfish \
     && mkdir -p /app/data
 
 EXPOSE 8080
 VOLUME ["/app/data"]
 
-ENTRYPOINT ["chess-entrypoint"]
 CMD ["python", "-m", "chess_move_analyzer"]

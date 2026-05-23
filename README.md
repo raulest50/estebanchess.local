@@ -10,7 +10,7 @@ environment and Stockfish engine together, so the host machine only needs Docker
 Build and run the portable service:
 
 ```powershell
-docker compose up --build app
+docker compose up --build
 ```
 
 Open:
@@ -37,27 +37,6 @@ To remove the persisted cache as well:
 ```powershell
 docker compose down -v
 ```
-
-## Linux mDNS Profile
-
-On Linux hosts, the compose file includes an optional mDNS profile that attempts
-to publish the app as:
-
-```text
-http://estebanchess.local:8080
-```
-
-Run it with host networking:
-
-```bash
-docker compose --profile mdns-linux up --build app-mdns-linux
-```
-
-This profile starts `dbus` and `avahi-daemon` inside the container and publishes
-an HTTP service for `estebanchess.local`. This is mainly intended for Linux
-because Docker Desktop on Windows and macOS does not expose container multicast
-networking in the same reliable way. On Docker Desktop, use `localhost:8080`
-unless you configure name resolution on the host.
 
 ## Docker Build Options
 
@@ -119,8 +98,6 @@ CHESS_ANALYZER_HOST   Bind address. Default local value: 127.0.0.1.
 CHESS_ANALYZER_PORT   Port. Default auto-selects 8080 or nearby free ports.
 CHESS_ANALYZER_SHOW   Whether NiceGUI opens a browser window. Default: true.
 STOCKFISH_PATH        Explicit Stockfish executable path.
-ENABLE_MDNS           Set to 1/true/on to start container mDNS support.
-MDNS_HOSTNAME         Hostname prefix for mDNS. Default: estebanchess.
 ```
 
 The Docker image sets:
@@ -145,4 +122,3 @@ STOCKFISH_PATH=/usr/local/bin/stockfish
 
 - Stockfish releases: <https://github.com/official-stockfish/Stockfish/releases>
 - Stockfish downloads: <https://stockfishchess.org/download/>
-- Docker host networking: <https://docs.docker.com/engine/network/drivers/host/>
