@@ -809,7 +809,18 @@ def main() -> None:
         )
     build_ui()
     port = _resolve_port()
-    ui.run(title="Chess Move Analyzer", host="127.0.0.1", port=port, reload=False, show=True)
+    ui.run(title="Chess Move Analyzer", host=_resolve_host(), port=port, reload=False, show=_resolve_show())
+
+
+def _resolve_host() -> str:
+    return os.environ.get("CHESS_ANALYZER_HOST", "127.0.0.1")
+
+
+def _resolve_show() -> bool:
+    value = os.environ.get("CHESS_ANALYZER_SHOW")
+    if value is None:
+        return True
+    return value.strip().lower() not in {"0", "false", "no", "off"}
 
 
 def _resolve_port() -> int:

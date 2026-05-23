@@ -158,6 +158,7 @@ def resolve_stockfish_path() -> Path:
     if env_path:
         candidates.append(Path(env_path))
     candidates.append(Path.cwd() / "engines" / "stockfish.exe")
+    candidates.append(Path.cwd() / "engines" / "stockfish")
     path_in_shell = shutil.which("stockfish")
     if path_in_shell:
         candidates.append(Path(path_in_shell))
@@ -167,7 +168,8 @@ def resolve_stockfish_path() -> Path:
             return candidate
 
     raise EngineNotFoundError(
-        "Stockfish was not found. Put stockfish.exe in engines/ or set STOCKFISH_PATH."
+        "Stockfish was not found. Put stockfish or stockfish.exe in engines/, "
+        "install stockfish in PATH, or set STOCKFISH_PATH."
     )
 
 

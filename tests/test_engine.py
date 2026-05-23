@@ -1,7 +1,12 @@
 import chess
 import chess.engine
 
-from chess_move_analyzer.engine import candidate_lines_from_multipv, effective_profile, normalize_multipv
+from chess_move_analyzer.engine import (
+    candidate_lines_from_multipv,
+    effective_profile,
+    normalize_multipv,
+    resolve_stockfish_path,
+)
 
 
 def test_normalize_multipv_clamps_to_supported_range():
@@ -18,6 +23,18 @@ def test_effective_profile_preserves_profile_settings_and_overrides_multipv():
     assert profile.seconds_per_position == 3.0
     assert profile.hash_mb == 1024
     assert profile.multipv == 2
+
+
+def test_resolve_stockfish_path_accepts_linux_binary_in_engines(tmp_path, monkeypatch):
+    stockfish = tmp_path / "engines" / "stockfish"
+    stockfish.parent.mkdir()
+    stockfish.write_text("binary placeholder")
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("STOCKFISH_PATH", raising=False)
+    monkeypatch.setattr("chess_move_analyzer.engine.shutil.which", lambda _: None)
+
+    assert resolve_stockfish_path() == stockfish
 
 
 def test_candidate_lines_from_multipv_sorts_and_preserves_each_pv():

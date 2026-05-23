@@ -1,0 +1,12 @@
+.git
+.pytest_cache
+.ruff_cache
+.uv-cache
+.venv
+__pycache__
+*.pyc
+*.log
+data
+engines
+Dockerfile
+docker-compose.override.yml

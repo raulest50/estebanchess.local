@@ -13,6 +13,8 @@ from chess_move_analyzer.app import (
     _normalize_user_color,
     _render_analysis,
     _render_detail,
+    _resolve_host,
+    _resolve_show,
     _select_move,
     _select_pv_move,
     _select_reply_pv_move,
@@ -30,6 +32,20 @@ from chess_move_analyzer.models import CandidateLine, EngineEvaluation, GameAnal
 def test_detail_line_uses_nicegui_labels_without_attribute_error():
     with ui.column():
         assert _detail_line("Played", "e2e4") is None
+
+
+def test_runtime_host_and_show_are_configurable(monkeypatch):
+    monkeypatch.delenv("CHESS_ANALYZER_HOST", raising=False)
+    monkeypatch.delenv("CHESS_ANALYZER_SHOW", raising=False)
+
+    assert _resolve_host() == "127.0.0.1"
+    assert _resolve_show() is True
+
+    monkeypatch.setenv("CHESS_ANALYZER_HOST", "0.0.0.0")
+    monkeypatch.setenv("CHESS_ANALYZER_SHOW", "false")
+
+    assert _resolve_host() == "0.0.0.0"
+    assert _resolve_show() is False
 
 
 def test_render_analysis_uses_column_context_without_add():
