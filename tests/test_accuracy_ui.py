@@ -147,6 +147,18 @@ def test_render_feedback_displays_hidden_analysis_after_move():
     assert "e4" in texts
 
 
+def test_render_feedback_displays_up_to_five_top_moves():
+    before = set(ui.context.client.elements)
+
+    with ui.column():
+        accuracy_ui._render_feedback(_feedback(top_move_count=5))
+
+    created = _created_elements(before)
+    texts = {getattr(element, "text", None) for element in created}
+    assert {"#1", "#2", "#3", "#4", "#5"}.issubset(texts)
+    assert "#6" not in texts
+
+
 @pytest.mark.anyio
 async def test_load_uploaded_pgn_stores_reference_without_copying(monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
@@ -195,7 +207,7 @@ def test_prepare_training_config_sets_seed_and_automatic_sample_size():
     assert config.random_seed is not None
 
 
-def _feedback() -> MoveFeedback:
+def _feedback(top_move_count: int = 2) -> MoveFeedback:
     board = chess.Board()
     move = chess.Move.from_uci("e2e4")
     fen_before = board.fen()
@@ -216,8 +228,22 @@ def _feedback() -> MoveFeedback:
         move_score=85.0,
         classification="excellent",
         top_candidates=[
-            CandidateLine(rank=1, move_uci="e2e4", move_san="e4", evaluation=evaluation),
-            CandidateLine(rank=2, move_uci="d2d4", move_san="d4", evaluation=evaluation),
+            CandidateLine(
+                rank=index,
+                move_uci=move_uci,
+                move_san=move_san,
+                evaluation=evaluation,
+            )
+            for index, (move_uci, move_san) in enumerate(
+                [
+                    ("e2e4", "e4"),
+                    ("d2d4", "d4"),
+                    ("g1f3", "Nf3"),
+                    ("c2c4", "c4"),
+                    ("b1c3", "Nc3"),
+                ][:top_move_count],
+                start=1,
+            )
         ],
         best_reply=CandidateLine(rank=1, move_uci="e7e5", move_san="e5", evaluation=evaluation),
         worst_found=CandidateLine(rank=1, move_uci="a2a3", move_san="a3", evaluation=evaluation),

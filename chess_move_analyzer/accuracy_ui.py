@@ -360,7 +360,7 @@ def _render_feedback(feedback: MoveFeedback) -> None:
     if feedback.top_candidates:
         ui.separator()
         ui.label("Top moves").classes("meta")
-        for candidate in feedback.top_candidates[:2]:
+        for candidate in feedback.top_candidates[:5]:
             _detail_line(f"#{candidate.rank}", f"{candidate.move_san or candidate.move_uci or '?'} | {candidate.evaluation.label}")
     if feedback.best_reply:
         ui.separator()

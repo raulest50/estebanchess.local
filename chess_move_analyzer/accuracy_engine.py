@@ -9,8 +9,11 @@ from .models import CandidateLine, PositionAnalysis
 from .storage import AnalysisStorage
 
 TRAINING_PROFILE = AnalysisProfile("training", seconds_per_position=0.25, multipv=3, hash_mb=256)
+TRAINING_REVIEW_PROFILE = AnalysisProfile("training-review", seconds_per_position=0.75, multipv=5, hash_mb=512)
 WORST_MOVE_PROFILE = AnalysisProfile("training-worst", seconds_per_position=0.06, multipv=1, hash_mb=128)
 WORST_MOVE_LIMIT = 10
+REVIEW_SCORE_THRESHOLD = 95.0
+MAX_FEEDBACK_CANDIDATES = 5
 
 
 class AccuracyEngine:
@@ -19,12 +22,7 @@ class AccuracyEngine:
         self.storage = storage
 
     def analyze_position(self, board: chess.Board, multipv: int = 3) -> PositionAnalysis:
-        profile = AnalysisProfile(
-            TRAINING_PROFILE.name,
-            seconds_per_position=TRAINING_PROFILE.seconds_per_position,
-            multipv=multipv,
-            hash_mb=TRAINING_PROFILE.hash_mb,
-        )
+        profile = _profile_with_multipv(TRAINING_PROFILE, multipv)
         return self._cached_analysis(board, profile)
 
     def difficulty_gap(self, board: chess.Board) -> float | None:
@@ -53,8 +51,13 @@ class AccuracyEngine:
         board_after_user.push(move)
         after = self.analyze_position(board_after_user, multipv=2)
 
-        loss = max(0.0, before.evaluation.expected_for(mover) - after.evaluation.expected_for(mover))
+        loss = _expected_loss(mover, before, after)
         score = move_score(loss)
+        if _needs_deeper_review(move, before, score):
+            before = self._cached_analysis(board, TRAINING_REVIEW_PROFILE)
+            after = self._cached_analysis(board_after_user, TRAINING_REVIEW_PROFILE)
+            loss = _expected_loss(mover, before, after)
+            score = move_score(loss)
         reply = after.candidates[0] if after.candidates else None
         worst = self.worst_found(board, before)
 
@@ -71,7 +74,7 @@ class AccuracyEngine:
             expected_loss=round(loss, 4),
             move_score=score,
             classification=classify_training_loss(loss),
-            top_candidates=before.candidates[:2],
+            top_candidates=before.candidates[:MAX_FEEDBACK_CANDIDATES],
             best_reply=reply,
             worst_found=worst,
         )
@@ -127,3 +130,22 @@ def _pv_to_san(board: chess.Board, pv_uci: list[str]) -> list[str]:
         result.append(local_board.san(move))
         local_board.push(move)
     return result
+
+
+def _profile_with_multipv(profile: AnalysisProfile, multipv: int) -> AnalysisProfile:
+    return AnalysisProfile(
+        profile.name,
+        seconds_per_position=profile.seconds_per_position,
+        multipv=multipv,
+        hash_mb=profile.hash_mb,
+    )
+
+
+def _expected_loss(mover: chess.Color, before: PositionAnalysis, after: PositionAnalysis) -> float:
+    return max(0.0, before.evaluation.expected_for(mover) - after.evaluation.expected_for(mover))
+
+
+def _needs_deeper_review(move: chess.Move, before: PositionAnalysis, score: float) -> bool:
+    if score < REVIEW_SCORE_THRESHOLD:
+        return False
+    return move.uci() not in {candidate.move_uci for candidate in before.candidates}
