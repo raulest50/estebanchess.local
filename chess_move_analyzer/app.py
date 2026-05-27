@@ -54,13 +54,58 @@ class AppState:
 state = AppState()
 
 
+_STYLES_ADDED = False
+_PAGES_REGISTERED = False
+
+
 def build_ui() -> None:
+    _ensure_app_styles()
+    _register_pages()
+
+
+def _register_pages() -> None:
+    global _PAGES_REGISTERED
+    if _PAGES_REGISTERED:
+        return
+
+    @ui.page("/", title="Chess Move Analyzer")
+    def index_page() -> None:
+        ui.navigate.to("/analysis")
+
+    @ui.page("/analysis", title="Chess Move Analyzer")
+    def analysis_page() -> None:
+        _render_app_shell("analysis", _render_analysis_section)
+
+    @ui.page("/accuracy-training", title="Chess Move Analyzer")
+    def accuracy_training_page() -> None:
+        _render_app_shell("accuracy-training", _render_accuracy_training_section)
+
+    _PAGES_REGISTERED = True
+
+
+def _ensure_app_styles() -> None:
+    global _STYLES_ADDED
+    if _STYLES_ADDED:
+        return
     ui.add_head_html(
         """
         <style>
         body { background: #f6f7f9; color: #1f2933; }
         .app-shell { max-width: 1320px; margin: 0 auto; padding: 18px; }
         .panel { background: white; border: 1px solid #d8dee7; border-radius: 8px; padding: 14px; }
+        .nav-button {
+            border-radius: 6px;
+            color: #374151;
+        }
+        .nav-button-active {
+            background: #e0ecff;
+            box-shadow: 0 0 0 1px #bfdbfe inset;
+            color: #1d4ed8;
+        }
+        .placeholder-panel {
+            min-height: 260px;
+            justify-content: center;
+        }
         .move-row {
             width: 100%;
             justify-content: flex-start;
@@ -143,14 +188,46 @@ def build_ui() -> None:
         }
         .q-field { background: white; }
         </style>
-        """
+        """,
+        shared=True,
     )
+    _STYLES_ADDED = True
 
+
+def _render_app_shell(active_section: str, render_content: Callable[[], None]) -> None:
     with ui.column().classes("app-shell w-full gap-4"):
         with ui.row().classes("w-full items-center justify-between"):
-            ui.label("Chess Move Analyzer").classes("text-2xl font-semibold")
+            with ui.row().classes("items-center gap-4"):
+                ui.label("Chess Move Analyzer").classes("text-2xl font-semibold")
+                with ui.row().classes("items-center gap-1"):
+                    _render_nav_button("Game Analysis", "/analysis", active_section == "analysis", "analytics")
+                    _render_nav_button(
+                        "Accuracy Training",
+                        "/accuracy-training",
+                        active_section == "accuracy-training",
+                        "track_changes",
+                    )
             ui.label("Local Stockfish review").classes("meta")
+        render_content()
 
+
+def _render_nav_button(label: str, route: str, active: bool, icon: str):
+    button = ui.button(label, icon=icon, on_click=lambda target=route: ui.navigate.to(target))
+    button.props("flat dense no-caps")
+    button.classes("nav-button")
+    if active:
+        button.classes(add="nav-button-active")
+    return button
+
+
+def _render_accuracy_training_section() -> None:
+    from .accuracy_ui import render_accuracy_training_section
+
+    render_accuracy_training_section()
+
+
+def _render_analysis_section() -> None:
+    with ui.column().classes("w-full gap-4"):
         with ui.row().classes("w-full gap-4"):
             with ui.column().classes("panel gap-3").style("flex: 1 1 420px;"):
                 url_input = ui.input("Chess.com link").props("outlined dense clearable").classes("w-full")

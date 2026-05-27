@@ -1,8 +1,9 @@
-from nicegui import ui
+from nicegui import app as nicegui_app, ui
 
 import chess
 
 from chess_move_analyzer.app import (
+    build_ui,
     state,
     _chart_options,
     _clear_pv_selection,
@@ -11,7 +12,10 @@ from chess_move_analyzer.app import (
     _move_clock_label,
     _move_owner_badge_label,
     _normalize_user_color,
+    _render_accuracy_training_section,
     _render_analysis,
+    _render_analysis_section,
+    _render_app_shell,
     _render_detail,
     _resolve_host,
     _resolve_show,
@@ -27,6 +31,53 @@ from chess_move_analyzer.app import (
 )
 from chess_move_analyzer.board_view import create_board_panel
 from chess_move_analyzer.models import CandidateLine, EngineEvaluation, GameAnalysis, GameRecord, MoveAnalysis
+
+
+def test_build_ui_registers_navigation_pages():
+    assert build_ui() is None
+
+    paths = {route.path for route in nicegui_app.routes}
+    assert {"/", "/analysis", "/accuracy-training"}.issubset(paths)
+
+
+def test_app_shell_renders_navigation_with_active_section():
+    before = set(ui.context.client.elements)
+
+    assert _render_app_shell("analysis", lambda: ui.label("Body sentinel")) is None
+
+    created = _created_elements(before)
+    buttons = {element.text: element for element in created if type(element).__name__ == "Button"}
+    assert {"Game Analysis", "Accuracy Training"}.issubset(buttons)
+    assert "nav-button-active" in buttons["Game Analysis"]._classes
+    assert "nav-button-active" not in buttons["Accuracy Training"]._classes
+
+
+def test_accuracy_training_section_delegates_to_training_ui(monkeypatch):
+    monkeypatch.setattr("chess_move_analyzer.accuracy_ui._recent_sessions", lambda: [])
+    before = set(ui.context.client.elements)
+
+    assert _render_accuracy_training_section() is None
+
+    created = _created_elements(before)
+    texts = {getattr(element, "text", None) for element in created}
+    labels = {element._props.get("label") for element in created if hasattr(element, "_props")}
+    assert "Accuracy Training" in texts
+    assert "Source" in labels
+    assert "Lichess PGN" not in labels
+    assert "No PGN file uploaded." in texts
+    assert "Difficulty" not in labels
+
+
+def test_analysis_section_renders_existing_analysis_controls():
+    before = set(ui.context.client.elements)
+
+    assert _render_analysis_section() is None
+
+    created = _created_elements(before)
+    labels = {element._props.get("label") for element in created if hasattr(element, "_props")}
+    button_texts = {element.text for element in created if type(element).__name__ == "Button"}
+    assert {"Chess.com link", "PGN fallback", "Profile", "Top N", "User color"}.issubset(labels)
+    assert "Analyze" in button_texts
 
 
 def test_detail_line_uses_nicegui_labels_without_attribute_error():
@@ -369,6 +420,10 @@ def test_chart_options_do_not_change_side_areas_with_user_color():
     assert black_user_options["series"][1] == white_user_options["series"][1]
     assert "You" not in " ".join(black_user_options["legend"]["data"])
     assert "Opponent" not in " ".join(black_user_options["legend"]["data"])
+
+
+def _created_elements(before: set[int]) -> list[object]:
+    return [element for element_id, element in ui.context.client.elements.items() if element_id not in before]
 
 
 def _sample_analysis() -> GameAnalysis:
