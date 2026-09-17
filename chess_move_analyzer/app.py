@@ -15,6 +15,7 @@ from .board_view import create_board_panel, move_arrow, update_board_panel
 from .chesscom import ChessComImporter, ChessComImportError
 from .engine import EngineNotFoundError, PROFILES, StockfishEngine, normalize_multipv
 from .models import AnalysisProgress, CandidateLine, GameAnalysis, GameRecord, MoveAnalysis
+from .mdns import start_mdns_responder
 from .pgn_utils import record_from_pgn
 from .pv import pv_board_at
 from .storage import AnalysisStorage
@@ -883,14 +884,41 @@ def main() -> None:
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        )
+    )
     build_ui()
+    host = _resolve_host()
     port = _resolve_port()
-    ui.run(title="Chess Move Analyzer", host=_resolve_host(), port=port, reload=False, show=_resolve_show())
+    mdns_responder = None
+    if _resolve_mdns_enabled():
+        if _host_is_lan_accessible(host):
+            mdns_responder = start_mdns_responder(_resolve_mdns_name(), port)
+        else:
+            logger.info("mDNS skipped because the app is bound to %s.", host)
+    try:
+        ui.run(title="Chess Move Analyzer", host=host, port=port, reload=False, show=_resolve_show())
+    finally:
+        if mdns_responder is not None:
+            mdns_responder.close()
 
 
 def _resolve_host() -> str:
-    return os.environ.get("CHESS_ANALYZER_HOST", "127.0.0.1")
+    return os.environ.get("CHESS_ANALYZER_HOST", "0.0.0.0")
+
+
+def _resolve_mdns_enabled() -> bool:
+    value = os.environ.get("CHESS_ANALYZER_MDNS")
+    if value is None:
+        return True
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
+def _resolve_mdns_name() -> str:
+    return os.environ.get("CHESS_ANALYZER_MDNS_NAME", "chess109.local")
+
+
+def _host_is_lan_accessible(host: str) -> bool:
+    normalized = host.strip().lower()
+    return normalized not in {"127.0.0.1", "localhost", "::1"}
 
 
 def _resolve_show() -> bool:

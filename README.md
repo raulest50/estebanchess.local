@@ -69,6 +69,17 @@ uv --cache-dir .uv-cache pip install -e . --python .venv\Scripts\python.exe
 uv --cache-dir .uv-cache run --no-sync python -m chess_move_analyzer
 ```
 
+By default the local command binds the app to the LAN and attempts to announce
+an mDNS name. Other devices on the same network can try:
+
+```text
+http://chess109.local:8080
+```
+
+If the selected port is not 8080, use the port printed by NiceGUI. Windows may
+also ask for firewall permission for Python. If mDNS is blocked by the OS or by
+another local mDNS responder, use the computer IP address with the same port.
+
 Linux:
 
 ```bash
@@ -94,9 +105,12 @@ Alternatively, install Stockfish in `PATH` or set `STOCKFISH_PATH`.
 Environment variables:
 
 ```text
-CHESS_ANALYZER_HOST   Bind address. Default local value: 127.0.0.1.
+CHESS_ANALYZER_HOST   Bind address. Default local value: 0.0.0.0.
 CHESS_ANALYZER_PORT   Port. Default auto-selects 8080 or nearby free ports.
 CHESS_ANALYZER_SHOW   Whether NiceGUI opens a browser window. Default: true.
+CHESS_ANALYZER_MDNS   Enable local mDNS announcement. Default: true.
+CHESS_ANALYZER_MDNS_NAME
+                      Local mDNS hostname. Default: chess109.local.
 STOCKFISH_PATH        Explicit Stockfish executable path.
 ```
 
